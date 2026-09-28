@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'edit_transaction_screen.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -377,9 +378,9 @@ class _AddTransactionScreenState
 
             const SizedBox(height: 24),
 
-            // =========================
-            // NÚT LƯU
-            // =========================
+// =========================
+// NÚT LƯU
+// =========================
 
             SizedBox(
               width: double.infinity,
@@ -401,6 +402,45 @@ class _AddTransactionScreenState
 
                 child: const Text(
                   'Lưu',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+// =========================
+// NÚT SỬA GIAO DỊCH
+// =========================
+
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EditTransactionScreen(),
+                    ),
+                  );
+                },
+
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6464),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                ),
+
+                child: const Text(
+                  'Sửa giao dịch',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,

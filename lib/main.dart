@@ -18,7 +18,7 @@ class ExpenseManagerApp extends StatelessWidget {
         fontFamily: 'Arial',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const AddTransactionScreen(),
+      home: const WelcomeScreen(),
     );
   }
 }
