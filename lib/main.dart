@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'add_transaction_screen.dart';
+import 'edit_transaction_screen.dart';
 
 void main() {
   runApp(const ExpenseManagerApp());
@@ -16,7 +18,7 @@ class ExpenseManagerApp extends StatelessWidget {
         fontFamily: 'Arial',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const WelcomeScreen(),
+      home: const AddTransactionScreen(),
     );
   }
 }
@@ -70,7 +72,12 @@ class WelcomeScreen extends StatelessWidget {
                 height: 44,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: Xử lý khi nhấn Bắt đầu
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddTransactionScreen(),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1976D2),
