@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'add_transaction_screen.dart';
 import 'edit_transaction_screen.dart';
+import 'dashboard_screen.dart';
 
 void main() {
   runApp(const ExpenseManagerApp());
@@ -18,7 +19,7 @@ class ExpenseManagerApp extends StatelessWidget {
         fontFamily: 'Arial',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const WelcomeScreen(),
+      home: const DashboardScreen(),
     );
   }
 }
