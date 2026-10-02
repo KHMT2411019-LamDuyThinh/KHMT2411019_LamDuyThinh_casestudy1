@@ -3,6 +3,7 @@ import 'add_transaction_screen.dart';
 import 'edit_transaction_screen.dart';
 import 'dashboard_screen.dart';
 
+
 void main() {
   runApp(const ExpenseManagerApp());
 }
@@ -15,10 +16,12 @@ class ExpenseManagerApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Expense Manager',
+
       theme: ThemeData(
         fontFamily: 'Arial',
         scaffoldBackgroundColor: Colors.white,
       ),
+
       home: const DashboardScreen(),
     );
   }

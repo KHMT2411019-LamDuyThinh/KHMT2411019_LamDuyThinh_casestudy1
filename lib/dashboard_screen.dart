@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'add_transaction_screen.dart';
 import 'edit_transaction_screen.dart';
+import 'database_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -10,6 +11,20 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _openDatabase();
+  }
+
+  Future<void> _openDatabase() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      debugPrint('DATABASE CREATED: ${db.path}');
+    } catch (e) {
+      debugPrint('DATABASE ERROR: $e');
+    }
+  }
   int currentIndex = 0;
 
   final List<Map<String, dynamic>> transactions = [
