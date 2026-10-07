@@ -11,80 +11,233 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  int currentIndex = 0;
+
+  List<Map<String, dynamic>> transactions = [];
+
   @override
   void initState() {
     super.initState();
-    _openDatabase();
+    _loadTransactions();
   }
 
-  Future<void> _openDatabase() async {
+  // =====================================================
+  // LOAD DỮ LIỆU TỪ SQLITE
+  // =====================================================
+
+  Future<void> _loadTransactions() async {
     try {
-      final db = await DatabaseHelper.instance.database;
-      debugPrint('DATABASE CREATED: ${db.path}');
+      final data =
+      await DatabaseHelper.instance.getTransactions();
+
+      if (!mounted) return;
+
+      setState(() {
+        transactions = data;
+      });
     } catch (e) {
       debugPrint('DATABASE ERROR: $e');
     }
   }
-  int currentIndex = 0;
 
-  final List<Map<String, dynamic>> transactions = [
-    {
-      'title': 'Ăn trưa',
-      'category': 'Ăn uống',
-      'date': '03/09/2024',
-      'amount': '-50.000 đ',
-      'icon': Icons.restaurant,
-      'iconColor': Color(0xFFFF7A22),
-      'amountColor': Color(0xFFFF3B4A),
-    },
-    {
-      'title': 'Xăng xe',
-      'category': 'Di chuyển',
-      'date': '03/09/2024',
-      'amount': '-100.000 đ',
-      'icon': Icons.directions_car,
-      'iconColor': Color(0xFF2196F3),
-      'amountColor': Color(0xFFFF3B4A),
-    },
-    {
-      'title': 'Lương tháng 9',
-      'category': 'Thu nhập',
-      'date': '01/09/2024',
-      'amount': '+8.000.000 đ',
-      'icon': Icons.attach_money,
-      'iconColor': Color(0xFF22B74A),
-      'amountColor': Color(0xFF16A34A),
-    },
-    {
-      'title': 'Mua sắm',
-      'category': 'Mua sắm',
-      'date': '31/08/2024',
-      'amount': '-300.000 đ',
-      'icon': Icons.shopping_cart,
-      'iconColor': Color(0xFF9C45F5),
-      'amountColor': Color(0xFFFF3B4A),
-    },
-    {
-      'title': 'Học phí',
-      'category': 'Giáo dục',
-      'date': '30/08/2024',
-      'amount': '-500.000 đ',
-      'icon': Icons.school,
-      'iconColor': Color(0xFF16A6A6),
-      'amountColor': Color(0xFFFF3B4A),
-    },
-  ];
+  // =====================================================
+  // TỔNG THU NHẬP
+  // =====================================================
+
+  double get totalIncome {
+    double total = 0;
+
+    for (final transaction in transactions) {
+      if (transaction['type'] == 'income') {
+        total +=
+            (transaction['amount'] as num).toDouble();
+      }
+    }
+
+    return total;
+  }
+
+  // =====================================================
+  // TỔNG CHI TIÊU
+  // =====================================================
+
+  double get totalExpense {
+    double total = 0;
+
+    for (final transaction in transactions) {
+      if (transaction['type'] == 'expense') {
+        total +=
+            (transaction['amount'] as num).toDouble();
+      }
+    }
+
+    return total;
+  }
+
+  // =====================================================
+  // SỐ DƯ
+  // =====================================================
+
+  double get balance {
+    return totalIncome - totalExpense;
+  }
+
+  // =====================================================
+  // FORMAT TIỀN
+  // 50000 -> 50.000
+  // =====================================================
+
+  String formatMoney(double amount) {
+    final isNegative = amount < 0;
+
+    final value = amount.abs().round().toString();
+
+    final buffer = StringBuffer();
+
+    for (int i = 0; i < value.length; i++) {
+      final positionFromEnd = value.length - i;
+
+      buffer.write(value[i]);
+
+      if (positionFromEnd > 1 &&
+          positionFromEnd % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+
+    return '${isNegative ? '-' : ''}${buffer.toString()}';
+  }
+
+  // =====================================================
+  // FORMAT SỐ TIỀN GIAO DỊCH
+  // =====================================================
+
+  String displayAmount(
+      Map<String, dynamic> item,
+      ) {
+    final amount =
+    (item['amount'] as num).toDouble();
+
+    final isIncome = item['type'] == 'income';
+
+    return '${isIncome ? '+' : '-'}'
+        '${formatMoney(amount)} đ';
+  }
+
+  // =====================================================
+  // ICON THEO DANH MỤC
+  // =====================================================
+
+  IconData getIcon(
+      String category,
+      bool isIncome,
+      ) {
+    if (isIncome) {
+      return Icons.attach_money;
+    }
+
+    switch (category) {
+      case 'Ăn uống':
+        return Icons.restaurant;
+
+      case 'Di chuyển':
+        return Icons.directions_car;
+
+      case 'Mua sắm':
+        return Icons.shopping_cart;
+
+      case 'Giáo dục':
+        return Icons.school;
+
+      case 'Giải trí':
+        return Icons.movie;
+
+      default:
+        return Icons.receipt_long;
+    }
+  }
+
+  // =====================================================
+  // MÀU ICON THEO DANH MỤC
+  // =====================================================
+
+  Color getIconColor(
+      String category,
+      bool isIncome,
+      ) {
+    if (isIncome) {
+      return const Color(0xFF22B74A);
+    }
+
+    switch (category) {
+      case 'Ăn uống':
+        return const Color(0xFFFF7A22);
+
+      case 'Di chuyển':
+        return const Color(0xFF2196F3);
+
+      case 'Mua sắm':
+        return const Color(0xFF9C45F5);
+
+      case 'Giáo dục':
+        return const Color(0xFF16A6A6);
+
+      case 'Giải trí':
+        return const Color(0xFFFF9800);
+
+      default:
+        return const Color(0xFF64748B);
+    }
+  }
+
+  // =====================================================
+  // MỞ MÀN HÌNH THÊM
+  // =====================================================
+
+  Future<void> _openAddTransaction() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+        const AddTransactionScreen(),
+      ),
+    );
+
+    await _loadTransactions();
+  }
+
+  // =====================================================
+  // MỞ MÀN HÌNH SỬA
+  // =====================================================
+
+  Future<void> _openEditTransaction(
+      int transactionId,
+      ) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            EditTransactionScreen(
+              transactionId: transactionId,
+            ),
+      ),
+    );
+
+    await _loadTransactions();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
 
-      // =========================
+      // =================================================
       // APP BAR
-      // =========================
+      // =================================================
+
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF7F9FC),
+        backgroundColor:
+        const Color(0xFFF7F9FC),
         elevation: 0,
 
         leading: IconButton(
@@ -126,7 +279,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Container(
                   width: 18,
                   height: 18,
-                  decoration: const BoxDecoration(
+                  decoration:
+                  const BoxDecoration(
                     color: Color(0xFFFF4D5A),
                     shape: BoxShape.circle,
                   ),
@@ -136,7 +290,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                        fontWeight:
+                        FontWeight.bold,
                       ),
                     ),
                   ),
@@ -147,75 +302,101 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
 
-      // =========================
+      // =================================================
       // BODY
-      // =========================
+      // =================================================
+
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            20,
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+            CrossAxisAlignment.start,
             children: [
 
-              // =========================
+              // =========================================
               // THẺ SỐ DƯ
-              // =========================
+              // =========================================
+
               Container(
                 width: double.infinity,
                 height: 170,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                  gradient:
+                  const LinearGradient(
+                    begin:
+                    Alignment.topLeft,
+                    end:
+                    Alignment.bottomRight,
                     colors: [
                       Color(0xFF4D83F6),
                       Color(0xFF1764D8),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius:
+                  BorderRadius.circular(18),
                 ),
-
                 child: Stack(
                   children: [
 
-                    // Nội dung số dư
                     Align(
-                      alignment: Alignment.centerLeft,
+                      alignment:
+                      Alignment.centerLeft,
                       child: Padding(
-                        padding: const EdgeInsets.only(left: 28),
+                        padding:
+                        const EdgeInsets.only(
+                          left: 28,
+                        ),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment:
+                          MainAxisAlignment.center,
                           crossAxisAlignment:
-                          CrossAxisAlignment.center,
+                          CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
+
+                            const Row(
+                              children: [
                                 Text(
                                   'SỐ DƯ HIỆN TẠI',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color:
+                                    Colors.white,
                                     fontSize: 13,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight:
+                                    FontWeight.w500,
                                   ),
                                 ),
-                                SizedBox(width: 7),
+                                SizedBox(
+                                  width: 7,
+                                ),
                                 Icon(
-                                  Icons.visibility_outlined,
-                                  color: Colors.white,
+                                  Icons
+                                      .visibility_outlined,
+                                  color:
+                                  Colors.white,
                                   size: 18,
                                 ),
                               ],
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(
+                              height: 10,
+                            ),
 
-                            const Text(
-                              '5.000.000 đ',
-                              style: TextStyle(
-                                color: Colors.white,
+                            Text(
+                              '${formatMoney(balance)} đ',
+                              style:
+                              const TextStyle(
+                                color:
+                                Colors.white,
                                 fontSize: 36,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                FontWeight.bold,
                               ),
                             ),
                           ],
@@ -223,20 +404,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
 
-                    // Icon ví tiền
-                    Positioned(
+                    const Positioned(
                       right: 20,
                       top: 30,
-                      child: _WalletIllustration(),
+                      child:
+                      _WalletIllustration(),
                     ),
 
-                    // Dấu chấm
                     Positioned(
                       bottom: 9,
                       left: 0,
                       right: 0,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment:
+                        MainAxisAlignment.center,
                         children: [
                           _indicator(true),
                           _indicator(false),
@@ -251,36 +432,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 12),
 
-              // =========================
-              // THU NHẬP + CHI TIÊU
-              // =========================
+              // =========================================
+              // TỔNG THU + TỔNG CHI
+              // =========================================
+
               Row(
                 children: [
+
                   Expanded(
                     child: _SummaryCard(
-                      icon: Icons.arrow_downward,
-                      iconColor: const Color(0xFF35B95A),
+                      icon:
+                      Icons.arrow_downward,
+                      iconColor:
+                      const Color(
+                        0xFF35B95A,
+                      ),
                       backgroundColor:
-                      const Color(0xFFEFF9F0),
-                      title: 'TỔNG THU NHẬP',
-                      amount: '8.000.000 đ',
+                      const Color(
+                        0xFFEFF9F0,
+                      ),
+                      title:
+                      'TỔNG THU NHẬP',
+                      amount:
+                      '${formatMoney(totalIncome)} đ',
                       amountColor:
-                      const Color(0xFF18A63B),
+                      const Color(
+                        0xFF18A63B,
+                      ),
                     ),
                   ),
 
-                  const SizedBox(width: 10),
+                  const SizedBox(
+                    width: 10,
+                  ),
 
                   Expanded(
                     child: _SummaryCard(
-                      icon: Icons.arrow_upward,
-                      iconColor: const Color(0xFFFF525D),
+                      icon:
+                      Icons.arrow_upward,
+                      iconColor:
+                      const Color(
+                        0xFFFF525D,
+                      ),
                       backgroundColor:
-                      const Color(0xFFFFEFF0),
-                      title: 'TỔNG CHI TIÊU',
-                      amount: '3.000.000 đ',
+                      const Color(
+                        0xFFFFEFF0,
+                      ),
+                      title:
+                      'TỔNG CHI TIÊU',
+                      amount:
+                      '${formatMoney(totalExpense)} đ',
                       amountColor:
-                      const Color(0xFFFF3647),
+                      const Color(
+                        0xFFFF3647,
+                      ),
                     ),
                   ),
                 ],
@@ -288,19 +493,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 20),
 
-              // =========================
-              // GIAO DỊCH GẦN ĐÂY
-              // =========================
+              // =========================================
+              // TIÊU ĐỀ GIAO DỊCH
+              // =========================================
+
               Row(
                 mainAxisAlignment:
                 MainAxisAlignment.spaceBetween,
                 children: [
+
                   const Text(
                     'Giao dịch gần đây',
                     style: TextStyle(
                       color: Color(0xFF172B4D),
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                      FontWeight.bold,
                     ),
                   ),
 
@@ -309,8 +517,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: const Text(
                       'Xem tất cả',
                       style: TextStyle(
-                        color: Color(0xFF1976D2),
-                        fontWeight: FontWeight.bold,
+                        color:
+                        Color(0xFF1976D2),
+                        fontWeight:
+                        FontWeight.bold,
                       ),
                     ),
                   ),
@@ -319,42 +529,105 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 5),
 
-              // =========================
+              // =========================================
               // DANH SÁCH GIAO DỊCH
-              // =========================
+              // =========================================
+
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius:
+                  BorderRadius.circular(14),
                   border: Border.all(
-                    color: const Color(0xFFE4E9EF),
+                    color:
+                    const Color(0xFFE4E9EF),
                   ),
                 ),
-
-                child: Column(
-                  children: List.generate(
+                child: transactions.isEmpty
+                    ? const Padding(
+                  padding:
+                  EdgeInsets.all(30),
+                  child: Center(
+                    child: Text(
+                      'Chưa có giao dịch',
+                      style: TextStyle(
+                        color:
+                        Color(0xFF7A8494),
+                      ),
+                    ),
+                  ),
+                )
+                    : Column(
+                  children:
+                  List.generate(
                     transactions.length,
                         (index) {
-                      final item = transactions[index];
+
+                      final item =
+                      transactions[
+                      index];
+
+                      final int id =
+                      item['id'] as int;
+
+                      final String title =
+                          item['title']
+                              ?.toString() ??
+                              '';
+
+                      final String category =
+                          item['category']
+                              ?.toString() ??
+                              '';
+
+                      final String date =
+                          item['date']
+                              ?.toString() ??
+                              '';
+
+                      final bool isIncome =
+                          item['type'] ==
+                              'income';
 
                       return GestureDetector(
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const EditTransactionScreen(),
-                            ),
+                          _openEditTransaction(
+                            id,
                           );
                         },
-                        child: _TransactionItem(
-                          title: item['title'],
-                          category: item['category'],
-                          date: item['date'],
-                          amount: item['amount'],
-                          icon: item['icon'],
-                          iconColor: item['iconColor'],
-                          amountColor: item['amountColor'],
-                          isLast: index == transactions.length - 1,
+                        child:
+                        _TransactionItem(
+                          title: title,
+                          category:
+                          category,
+                          date: date,
+                          amount:
+                          displayAmount(
+                            item,
+                          ),
+                          icon:
+                          getIcon(
+                            category,
+                            isIncome,
+                          ),
+                          iconColor:
+                          getIconColor(
+                            category,
+                            isIncome,
+                          ),
+                          amountColor:
+                          isIncome
+                              ? const Color(
+                            0xFF16A34A,
+                          )
+                              : const Color(
+                            0xFFFF3B4A,
+                          ),
+                          isLast:
+                          index ==
+                              transactions
+                                  .length -
+                                  1,
                         ),
                       );
                     },
@@ -366,20 +639,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
-      // =========================
+      // =================================================
       // NÚT +
-      // =========================
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF1976D2),
+      // =================================================
+
+      floatingActionButton:
+      FloatingActionButton(
+        backgroundColor:
+        const Color(0xFF1976D2),
         elevation: 5,
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddTransactionScreen(),
-            ),
-          );
-        },
+        onPressed:
+        _openAddTransaction,
         child: const Icon(
           Icons.add,
           color: Colors.white,
@@ -390,10 +660,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       floatingActionButtonLocation:
       FloatingActionButtonLocation.endFloat,
 
-      // =========================
+      // =================================================
       // BOTTOM NAVIGATION
-      // =========================
-      bottomNavigationBar: BottomNavigationBar(
+      // =================================================
+
+      bottomNavigationBar:
+      BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: (index) {
           setState(() {
@@ -401,26 +673,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
           });
         },
         backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF1976D2),
-        unselectedItemColor: const Color(0xFF424A57),
-        selectedLabelStyle: const TextStyle(
+        type:
+        BottomNavigationBarType.fixed,
+        selectedItemColor:
+        const Color(0xFF1976D2),
+        unselectedItemColor:
+        const Color(0xFF424A57),
+        selectedLabelStyle:
+        const TextStyle(
           fontWeight: FontWeight.bold,
         ),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
+            icon:
+            Icon(Icons.home_outlined),
+            activeIcon:
+            Icon(Icons.home),
             label: 'Trang chủ',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long_outlined),
-            activeIcon: Icon(Icons.receipt_long),
+            icon: Icon(
+              Icons.receipt_long_outlined,
+            ),
+            activeIcon: Icon(
+              Icons.receipt_long,
+            ),
             label: 'Giao dịch',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.pie_chart_outline),
-            activeIcon: Icon(Icons.pie_chart),
+            icon: Icon(
+              Icons.pie_chart_outline,
+            ),
+            activeIcon: Icon(
+              Icons.pie_chart,
+            ),
             label: 'Thống kê',
           ),
         ],
@@ -428,25 +714,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // =====================================================
+  // INDICATOR
+  // =====================================================
+
   Widget _indicator(bool active) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 3),
+      margin:
+      const EdgeInsets.symmetric(
+        horizontal: 3,
+      ),
       width: active ? 14 : 6,
       height: 6,
       decoration: BoxDecoration(
         color: active
             ? Colors.white
-            : Colors.white.withOpacity(0.45),
-        borderRadius: BorderRadius.circular(10),
+            : Colors.white.withValues(
+          alpha: 0.45,
+        ),
+        borderRadius:
+        BorderRadius.circular(10),
       ),
     );
   }
 }
 
-
-// =====================================================
-// WIDGET: THẺ TỔNG THU NHẬP / CHI TIÊU
-// =====================================================
+// =======================================================
+// SUMMARY CARD
+// =======================================================
 
 class _SummaryCard extends StatelessWidget {
   final IconData icon;
@@ -469,20 +764,25 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 75,
-      padding: const EdgeInsets.symmetric(
+      padding:
+      const EdgeInsets.symmetric(
         horizontal: 10,
       ),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius:
+        BorderRadius.circular(12),
       ),
       child: Row(
         children: [
+
           Container(
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.15),
+              color: iconColor.withValues(
+                alpha: 0.15,
+              ),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -496,17 +796,22 @@ class _SummaryCard extends StatelessWidget {
 
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment:
+              MainAxisAlignment.center,
               crossAxisAlignment:
               CrossAxisAlignment.start,
               children: [
+
                 Text(
                   title,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  overflow:
+                  TextOverflow.ellipsis,
+                  style:
+                  const TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF5F6672),
+                    color:
+                    Color(0xFF5F6672),
                   ),
                 ),
 
@@ -515,11 +820,13 @@ class _SummaryCard extends StatelessWidget {
                 Text(
                   amount,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  overflow:
+                  TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
                     color: amountColor,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                    FontWeight.bold,
                   ),
                 ),
               ],
@@ -531,12 +838,13 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
+// =======================================================
+// TRANSACTION ITEM
+// =======================================================
 
-// =====================================================
-// WIDGET: GIAO DỊCH
-// =====================================================
+class _TransactionItem
+    extends StatelessWidget {
 
-class _TransactionItem extends StatelessWidget {
   final String title;
   final String category;
   final String date;
@@ -560,7 +868,8 @@ class _TransactionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding:
+      const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 11,
       ),
@@ -569,18 +878,19 @@ class _TransactionItem extends StatelessWidget {
             ? null
             : const Border(
           bottom: BorderSide(
-            color: Color(0xFFEAECEF),
+            color:
+            Color(0xFFEAECEF),
           ),
         ),
       ),
       child: Row(
         children: [
 
-          // ICON
           Container(
             width: 42,
             height: 42,
-            decoration: BoxDecoration(
+            decoration:
+            BoxDecoration(
               color: iconColor,
               shape: BoxShape.circle,
             ),
@@ -593,18 +903,24 @@ class _TransactionItem extends StatelessWidget {
 
           const SizedBox(width: 12),
 
-          // TÊN + DANH MỤC
           Expanded(
             child: Column(
               crossAxisAlignment:
               CrossAxisAlignment.start,
               children: [
+
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Color(0xFF172B4D),
+                  maxLines: 1,
+                  overflow:
+                  TextOverflow.ellipsis,
+                  style:
+                  const TextStyle(
+                    color:
+                    Color(0xFF172B4D),
                     fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                    FontWeight.bold,
                   ),
                 ),
 
@@ -612,8 +928,13 @@ class _TransactionItem extends StatelessWidget {
 
                 Text(
                   category,
-                  style: const TextStyle(
-                    color: Color(0xFF7A8494),
+                  maxLines: 1,
+                  overflow:
+                  TextOverflow.ellipsis,
+                  style:
+                  const TextStyle(
+                    color:
+                    Color(0xFF7A8494),
                     fontSize: 12,
                   ),
                 ),
@@ -621,27 +942,31 @@ class _TransactionItem extends StatelessWidget {
             ),
           ),
 
-          // NGÀY
           Text(
             date,
             style: const TextStyle(
-              color: Color(0xFF9AA3AF),
-              fontSize: 11,
+              color:
+              Color(0xFF9AA3AF),
+              fontSize: 10,
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
-          // SỐ TIỀN
           SizedBox(
-            width: 92,
+            width: 88,
             child: Text(
               amount,
-              textAlign: TextAlign.right,
+              textAlign:
+              TextAlign.right,
+              maxLines: 1,
+              overflow:
+              TextOverflow.ellipsis,
               style: TextStyle(
                 color: amountColor,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                fontWeight:
+                FontWeight.bold,
               ),
             ),
           ),
@@ -651,12 +976,13 @@ class _TransactionItem extends StatelessWidget {
   }
 }
 
+// =======================================================
+// WALLET ILLUSTRATION
+// =======================================================
 
-// =====================================================
-// WIDGET: VÍ TIỀN
-// =====================================================
+class _WalletIllustration
+    extends StatelessWidget {
 
-class _WalletIllustration extends StatelessWidget {
   const _WalletIllustration();
 
   @override
@@ -666,26 +992,38 @@ class _WalletIllustration extends StatelessWidget {
       height: 100,
       child: Stack(
         children: [
-          // Tờ tiền
+
+          // TỜ TIỀN 1
           Positioned(
             left: 22,
             top: 3,
-            child: Transform.rotate(
+            child:
+            Transform.rotate(
               angle: 0.12,
               child: Container(
                 width: 36,
                 height: 55,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF77C96F),
-                  borderRadius: BorderRadius.circular(3),
+                decoration:
+                BoxDecoration(
+                  color:
+                  const Color(
+                    0xFF77C96F,
+                  ),
+                  borderRadius:
+                  BorderRadius
+                      .circular(3),
                   border: Border.all(
-                    color: const Color(0xFF5DA957),
+                    color:
+                    const Color(
+                      0xFF5DA957,
+                    ),
                   ),
                 ),
                 child: const Center(
                   child: Icon(
                     Icons.attach_money,
-                    color: Color(0xFF39883C),
+                    color:
+                    Color(0xFF39883C),
                     size: 20,
                   ),
                 ),
@@ -693,65 +1031,87 @@ class _WalletIllustration extends StatelessWidget {
             ),
           ),
 
-          // Tờ tiền thứ 2
+          // TỜ TIỀN 2
           Positioned(
             left: 39,
             top: 7,
-            child: Transform.rotate(
+            child:
+            Transform.rotate(
               angle: 0.19,
               child: Container(
                 width: 34,
                 height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8BD67E),
-                  borderRadius: BorderRadius.circular(3),
+                decoration:
+                BoxDecoration(
+                  color:
+                  const Color(
+                    0xFF8BD67E,
+                  ),
+                  borderRadius:
+                  BorderRadius
+                      .circular(3),
                 ),
               ),
             ),
           ),
 
-          // Thân ví
+          // THÂN VÍ
           Positioned(
             left: 14,
             bottom: 12,
             child: Container(
               width: 68,
               height: 55,
-              decoration: BoxDecoration(
-                color: const Color(0xFF3F68B5),
-                borderRadius: BorderRadius.circular(10),
+              decoration:
+              BoxDecoration(
+                color:
+                const Color(
+                  0xFF3F68B5,
+                ),
+                borderRadius:
+                BorderRadius
+                    .circular(10),
               ),
             ),
           ),
 
-          // Khóa ví
+          // KHÓA VÍ
           Positioned(
             left: 61,
             bottom: 28,
             child: Container(
               width: 24,
               height: 20,
-              decoration: BoxDecoration(
-                color: const Color(0xFF6B8CCC),
-                borderRadius: BorderRadius.circular(5),
+              decoration:
+              BoxDecoration(
+                color:
+                const Color(
+                  0xFF6B8CCC,
+                ),
+                borderRadius:
+                BorderRadius
+                    .circular(5),
               ),
               child: const Center(
                 child: CircleAvatar(
                   radius: 4,
-                  backgroundColor: Colors.white,
+                  backgroundColor:
+                  Colors.white,
                 ),
               ),
             ),
           ),
 
-          // Đồng xu
+          // ĐỒNG XU
           Positioned(
             left: 7,
             bottom: 0,
             child: Row(
               children: [
                 _coin(0),
-                const SizedBox(width: 2),
+                const SizedBox(
+                  width: 2,
+                ),
                 _coin(4),
               ],
             ),
@@ -767,14 +1127,17 @@ class _WalletIllustration extends StatelessWidget {
       child: Container(
         width: 24,
         height: 24,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF7B82B),
+        decoration:
+        const BoxDecoration(
+          color:
+          Color(0xFFF7B82B),
           shape: BoxShape.circle,
         ),
         child: const Center(
           child: Icon(
             Icons.attach_money,
-            color: Color(0xFF9B6D05),
+            color:
+            Color(0xFF9B6D05),
             size: 15,
           ),
         ),

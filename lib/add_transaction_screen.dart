@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'database_helper.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -15,6 +16,9 @@ class _AddTransactionScreenState
   String category = 'Ăn uống';
 
   DateTime selectedDate = DateTime(2025, 4, 12);
+
+  final TextEditingController titleController =
+  TextEditingController();
 
   final TextEditingController amountController =
   TextEditingController();
@@ -216,15 +220,75 @@ class _AddTransactionScreenState
                     ),
                     DropdownMenuItem(
                       value: 'Di chuyển',
-                      child: Text('Di chuyển'),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 11,
+                            backgroundColor: Color(0xFF2196F3),
+                            child: Icon(
+                              Icons.directions_car,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Text('Di chuyển'),
+                        ],
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'Mua sắm',
-                      child: Text('Mua sắm'),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 11,
+                            backgroundColor: Color(0xFF9C45F5),
+                            child: Icon(
+                              Icons.shopping_cart,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Text('Mua sắm'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Giáo dục',
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 11,
+                            backgroundColor: Color(0xFF16A6A6),
+                            child: Icon(
+                              Icons.school,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Text('Giáo dục'),
+                        ],
+                      ),
                     ),
                     DropdownMenuItem(
                       value: 'Giải trí',
-                      child: Text('Giải trí'),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 11,
+                            backgroundColor: Color(0xFFFF9800),
+                            child: Icon(
+                              Icons.movie,
+                              size: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Text('Giải trí'),
+                        ],
+                      ),
                     ),
                   ],
 
@@ -240,7 +304,41 @@ class _AddTransactionScreenState
             ),
 
             const SizedBox(height: 18),
+            const Text(
+              'Nội dung giao dịch',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF172B4D),
+              ),
+            ),
 
+            const SizedBox(height: 7),
+
+            TextField(
+              controller: titleController,
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(
+                hintText: 'Nhập nội dung giao dịch',
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(9),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFDDE3EA),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(9),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFDDE3EA),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
             // =========================
             // SỐ TIỀN
             // =========================
@@ -353,6 +451,7 @@ class _AddTransactionScreenState
 
             TextField(
               controller: noteController,
+              keyboardType: TextInputType.multiline,
               maxLines: 3,
               decoration: InputDecoration(
                 hintText: 'Nhập ghi chú (tùy chọn)',
@@ -385,8 +484,24 @@ class _AddTransactionScreenState
               width: double.infinity,
               height: 46,
               child: ElevatedButton(
-                onPressed: () {
-                  print('Đã lưu giao dịch');
+                onPressed: () async {
+                  final transaction = {
+                    'title': titleController.text,
+                    'amount':
+                    double.tryParse(amountController.text) ?? 0,
+                    'type': isExpense ? 'expense' : 'income',
+                    'date': formatDate(selectedDate),
+                    'category': category,
+                    'note': noteController.text,
+                  };
+
+                  await DatabaseHelper.instance.insertTransaction(
+                    transaction,
+                  );
+
+                  if (!mounted) return;
+
+                  Navigator.pop(context);
                 },
 
                 style: ElevatedButton.styleFrom(
