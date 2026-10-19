@@ -15,7 +15,7 @@ class _AddTransactionScreenState
 
   String category = 'Ăn uống';
 
-  DateTime selectedDate = DateTime(2025, 4, 12);
+  DateTime selectedDate = DateTime.now();
 
   final TextEditingController titleController =
   TextEditingController();
@@ -45,6 +45,21 @@ class _AddTransactionScreenState
     return '${date.day.toString().padLeft(2, '0')}/'
         '${date.month.toString().padLeft(2, '0')}/'
         '${date.year}';
+  }
+
+  // Hỗ trợ nhập số tiền như 100000 hoặc 100.000 (VND).
+  double? parseAmount(String input) {
+    final digits = input.trim().replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return null;
+    return double.tryParse(digits);
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    amountController.dispose();
+    noteController.dispose();
+    super.dispose();
   }
 
   @override
@@ -137,7 +152,7 @@ class _AddTransactionScreenState
                       height: 46,
                       decoration: BoxDecoration(
                         color: !isExpense
-                            ? const Color(0xFFFF6464)
+                            ? const Color(0xFF35B95A)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(9),
                         border: Border.all(
@@ -485,23 +500,52 @@ class _AddTransactionScreenState
               height: 46,
               child: ElevatedButton(
                 onPressed: () async {
+                  final title = titleController.text.trim();
+                  final amount = parseAmount(amountController.text);
+
+                  // Không lưu giao dịch khi thiếu nội dung.
+                  if (title.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Vui lòng nhập nội dung giao dịch.'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Không cho phép lưu số tiền trống, không hợp lệ hoặc bằng 0.
+                  if (amount == null || amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Vui lòng nhập số tiền lớn hơn 0.'),
+                      ),
+                    );
+                    return;
+                  }
+
                   final transaction = {
-                    'title': titleController.text,
-                    'amount':
-                    double.tryParse(amountController.text) ?? 0,
+                    'title': title,
+                    'amount': amount,
                     'type': isExpense ? 'expense' : 'income',
                     'date': formatDate(selectedDate),
                     'category': category,
-                    'note': noteController.text,
+                    'note': noteController.text.trim(),
                   };
 
-                  await DatabaseHelper.instance.insertTransaction(
-                    transaction,
-                  );
-
-                  if (!mounted) return;
-
-                  Navigator.pop(context);
+                  try {
+                    await DatabaseHelper.instance.insertTransaction(
+                      transaction,
+                    );
+                    if (!mounted) return;
+                    Navigator.pop(context, true);
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Không thể lưu giao dịch. Vui lòng thử lại.'),
+                      ),
+                    );
+                  }
                 },
 
                 style: ElevatedButton.styleFrom(
